@@ -20,6 +20,7 @@
      node scripts/shopify-sync.js               # create / update everything
      node scripts/shopify-sync.js --only blue-eyes,ra
      node scripts/shopify-sync.js --no-publish  # skip sales-channel publishing
+     node scripts/shopify-sync.js --images      # also replace images of existing products
 
    Needs Node 18+ (built-in fetch). No dependencies.
    ============================================================ */
@@ -44,14 +45,17 @@ const CATALOG = {
     `Black acrylic, direct UV print of the card's Overframe illustration, milled to the exact PSA holder size. ` +
     `Empty display slab included – use it before your card is graded and swap in the PSA slab later. ` +
     `Slab slides in from the top, no glue, no tools.</p>`,
-  // Card images must be reachable by Shopify over HTTPS. Default: the GitHub repo.
-  imageBase: process.env.IMAGE_BASE_URL || 'https://raw.githubusercontent.com/nilsathome/overslab/main/img/cards/',
+  // Product images (framed render from scripts/render-product-images.sh) must be reachable by
+  // Shopify over HTTPS – default: this repo on GitHub, so push before syncing.
+  imageBase: process.env.IMAGE_BASE_URL || 'https://raw.githubusercontent.com/nilsathome/overslab/main/img/',
+  image: (c) => fs.existsSync(path.join(__dirname, '..', 'img', 'products', c.slug + '.jpg')) ? `products/${c.slug}.jpg` : `cards/${c.slug}.jpg`,
 };
 
 /* ---------- CLI + env ---------- */
 const args = process.argv.slice(2);
 const DRY = args.includes('--dry-run');
 const NO_PUBLISH = args.includes('--no-publish');
+const IMAGES = args.includes('--images');
 const ONLY = args.includes('--only') ? (args[args.indexOf('--only') + 1] || '').split(',').filter(Boolean) : [];
 if (args.includes('--only') && !ONLY.length) die('--only needs a comma-separated list of slugs');
 
@@ -89,9 +93,10 @@ if (ONLY.length) {
     const action = existing ? 'update' : 'create';
     if (DRY) { log(`  ${c.slug.padEnd(18)} would create/update  ${input.variants.map(v => `${v.optionValues[0].name} ${v.price}`).join(' · ')}${c.soon ? '  (draft – ' + c.soon + ')' : ''}`); continue; }
 
-    if (existing) { input.id = existing.id; delete input.files; }   // never re-upload images on update
+    if (existing) { input.id = existing.id; delete input.files; }   // productSet would append images on update
     const product = await productSet(api, input);
     if (existing) updated++; else created++;
+    if (existing && IMAGES) await replaceImages(api, product.id, CATALOG.imageBase + CATALOG.image(c), c.name);
 
     if (publications.length) await publish(api, product.id, publications);
 
@@ -147,6 +152,17 @@ async function productSet(api, input){
   if (r.userErrors.length) throw new Error(`${input.handle}: ${r.userErrors.map(e => `${(e.field || []).join('.')} ${e.message}`).join('; ')}`);
   return r.product;
 }
+async function replaceImages(api, productId, url, alt){
+  const d = await api(`query($id: ID!) { product(id: $id) { media(first: 50) { nodes { id } } } }`, {id: productId});
+  const ids = d.product.media.nodes.map(m => m.id);
+  if (ids.length) {
+    const del = await api(`mutation($id: ID!, $ids: [ID!]!) { productDeleteMedia(productId: $id, mediaIds: $ids) { mediaUserErrors { message } } }`, {id: productId, ids});
+    if (del.productDeleteMedia.mediaUserErrors.length) throw new Error('delete media: ' + del.productDeleteMedia.mediaUserErrors.map(e => e.message).join('; '));
+  }
+  const add = await api(`mutation($id: ID!, $media: [CreateMediaInput!]!) { productCreateMedia(productId: $id, media: $media) { mediaUserErrors { message } } }`,
+    {id: productId, media: [{originalSource: url, mediaContentType: 'IMAGE', alt}]});
+  if (add.productCreateMedia.mediaUserErrors.length) throw new Error('create media: ' + add.productCreateMedia.mediaUserErrors.map(e => e.message).join('; '));
+}
 async function listPublications(api){
   const d = await api(`{ publications(first: 25) { nodes { id name } } }`);
   return d.publications.nodes;
@@ -177,7 +193,7 @@ function buildInput(c){
       inventoryPolicy: 'CONTINUE',            // made to order – never "sold out" by stock
       inventoryItem: {tracked: false},
     })),
-    files: [{originalSource: CATALOG.imageBase + c.slug + '.jpg', contentType: 'IMAGE', alt: c.name}],
+    files: [{originalSource: CATALOG.imageBase + CATALOG.image(c), contentType: 'IMAGE', alt: c.name}],
   };
 }
 
