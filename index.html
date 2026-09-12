@@ -93,7 +93,7 @@ section{padding:clamp(88px,12vw,160px) 0;position:relative}
 .hero-actions{display:flex;gap:14px;flex-wrap:wrap}
 .hero-stage{position:relative;display:grid;place-items:center;min-height:520px}
 .hero-glow{
-  position:absolute;left:15%;top:50%;translate:0 -50%;width:70%;aspect-ratio:1;border-radius:50%;
+  position:absolute;left:15%;top:50%;transform:translateY(-50%);width:70%;padding-top:70%;border-radius:50%;
   background:radial-gradient(circle,#6d3fb0 0%,transparent 62%);
   filter:blur(60px);opacity:.55;z-index:0;
 }
@@ -112,7 +112,7 @@ section{padding:clamp(88px,12vw,160px) 0;position:relative}
   25%{opacity:1}
   to{clip-path:inset(0 0 0 0 round 14px);opacity:1}
 }
-@keyframes glowIn{from{opacity:0;transform:scale(.6)}to{opacity:.55;transform:none}}
+@keyframes glowIn{from{opacity:0;transform:translateY(-50%) scale(.6)}to{opacity:.55;transform:translateY(-50%)}}
 .hero-copy > *{animation:rise .9s var(--ease) both}
 .hero-copy > :nth-child(1){animation-delay:.05s}
 .hero-copy > :nth-child(2){animation-delay:.15s}
@@ -125,11 +125,12 @@ section{padding:clamp(88px,12vw,160px) 0;position:relative}
 /* ---------- The piece: slab + frame ---------- */
 /* Geometry: a PSA holder is ~82.5 × 136.5 mm; the frame adds ~3.5 % rim. */
 .piece{
-  position:relative;aspect-ratio:63/100;border-radius:14px;
+  position:relative;border-radius:14px;
   --art:none;--glow:#6d3fb0;
   filter:drop-shadow(0 40px 60px rgba(0,0,0,.65));
-  container-type:inline-size;
 }
+/* height = width × 100/63, via padding so it holds in every browser (Safari included) */
+.piece::before{content:"";display:block;padding-top:158.73%}
 .piece > *{position:absolute;inset:0;border-radius:inherit}
 /* Layer A: bare acrylic holder */
 .slab-layer{
@@ -166,13 +167,13 @@ section{padding:clamp(88px,12vw,160px) 0;position:relative}
   color:#111;font-family:Arial,Helvetica,sans-serif;font-weight:700;
   line-height:1.25;letter-spacing:.01em;container-type:inline-size;overflow:hidden;
 }
-.label > *{font-size:2.9cqw;line-height:1.28;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.label > *{font-size:6px;font-size:2.9cqw;line-height:1.28;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .label .l1,.label .l2,.label .l3{grid-column:1}
 .label .r1{grid-column:2;text-align:right;grid-row:1}
-.label .r2{grid-column:2;text-align:right;grid-row:2 / span 2;font-size:4.2cqw;line-height:1.1;align-self:center;white-space:normal}
-.label .bar{grid-column:1;grid-row:4;height:3.4cqw;width:55%;margin-top:.6cqw;
+.label .r2{grid-column:2;text-align:right;grid-row:2 / span 2;font-size:9px;font-size:4.2cqw;line-height:1.1;align-self:center;white-space:normal}
+.label .bar{grid-column:1;grid-row:4;height:7px;height:3.4cqw;width:55%;margin-top:1px;margin-top:.6cqw;
   background:repeating-linear-gradient(90deg,#111 0 1.2cqw,transparent 1.2cqw 1.8cqw,#111 1.8cqw 2.2cqw,transparent 2.2cqw 3.2cqw,#111 3.2cqw 4.1cqw,transparent 4.1cqw 5cqw)}
-.label .psa{grid-column:2;grid-row:4;text-align:right;font-style:italic;font-weight:900;font-size:5cqw;line-height:1;
+.label .psa{grid-column:2;grid-row:4;text-align:right;font-style:italic;font-weight:900;font-size:11px;font-size:5cqw;line-height:1;
   color:var(--psa-blue);letter-spacing:-.04em;align-self:end}
 .label .psa b{color:var(--psa-red)}
 .card{
@@ -198,10 +199,12 @@ section{padding:clamp(88px,12vw,160px) 0;position:relative}
 .compare-copy h2{margin-bottom:22px}
 .compare-copy .lead{margin-bottom:28px}
 .compare{
-  position:relative;width:min(380px,100%);margin-inline:auto;aspect-ratio:63/100;
+  position:relative;width:min(380px,100%);margin-inline:auto;
   user-select:none;touch-action:none;
 }
-.compare .piece{position:absolute;inset:0;width:100%;height:100%;filter:drop-shadow(0 30px 40px rgba(0,0,0,.6))}
+.compare::before{content:"";display:block;padding-top:158.73%}
+.compare .piece{position:absolute;inset:0;width:100%;filter:drop-shadow(0 30px 40px rgba(0,0,0,.6))}
+.compare .piece::before{display:none}
 .compare .after{clip-path:inset(0 0 0 var(--x,50%))}
 .compare .divider{
   position:absolute;top:-6%;bottom:-6%;left:var(--x,50%);width:2px;margin-left:-1px;
@@ -272,7 +275,7 @@ section{padding:clamp(88px,12vw,160px) 0;position:relative}
 .chip:hover{color:var(--text);border-color:var(--text)}
 .chip[aria-pressed="true"]{background:var(--text);color:#0a0a0d;border-color:var(--text)}
 .filters .count{margin-left:auto;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-2)}
-.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;perspective:1600px}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
 .tile{
   position:relative;padding:34px 22px 22px;border-radius:20px;
   background:linear-gradient(180deg,var(--bg-3),var(--bg-2));border:1px solid var(--line);
@@ -287,7 +290,7 @@ section{padding:clamp(88px,12vw,160px) 0;position:relative}
   opacity:.26;transition:opacity .4s;
 }
 .tile:hover .tglow{opacity:.45}
-.tile .piece{width:78%;margin:0 auto 26px;transform:translateZ(40px);filter:drop-shadow(0 26px 34px rgba(0,0,0,.6))}
+.tile .piece{width:78%;max-width:260px;margin:0 auto 26px;transform:translateZ(40px);filter:drop-shadow(0 26px 34px rgba(0,0,0,.6))}
 .tile .glare{
   position:absolute;inset:0;border-radius:inherit;pointer-events:none;
   background:radial-gradient(circle at var(--gx,50%) var(--gy,50%),rgba(255,255,255,.12),transparent 50%);
@@ -667,7 +670,7 @@ const CARDS = [
       const tile = e.target.closest('.tile'); if (!tile) return;
       const r = tile.getBoundingClientRect();
       const px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
-      tile.style.transform = `rotateY(${(px-.5)*14}deg) rotateX(${(.5-py)*14}deg)`;
+      tile.style.transform = `perspective(1600px) rotateY(${(px-.5)*14}deg) rotateX(${(.5-py)*14}deg)`;
       tile.style.setProperty('--gx', px*100+'%'); tile.style.setProperty('--gy', py*100+'%');
     });
     tiles.addEventListener('pointerout', e => { const tile = e.target.closest('.tile'); if (tile && !tile.contains(e.relatedTarget)) tile.style.transform = ''; });
