@@ -32,18 +32,19 @@ const vm = require('vm');
 
 /* ---------- Catalog: what gets created in Shopify ---------- */
 const CATALOG = {
-  mounts: [                     // one variant per mount option
-    {name: 'Stand',      price: 49},
-    {name: 'Wall mount', price: 49},
+  basePrice: 49,                // frame, per design; override per slug below
+  options: [                    // variants = every combination; surcharges are added to the base price
+    {name: 'Mount',        values: [{name: 'Stand'}, {name: 'Wall mount'}]},
+    {name: 'Display slab', values: [{name: 'Frame only'}, {name: 'With display slab', surcharge: 8}]},
   ],
-  overrides: {                  // per-design price, e.g. 'blue-eyes': {price: 59}
+  overrides: {                  // per-design base price, e.g. 'blue-eyes': {price: 59}
   },
   vendor: 'OVERSLAB',
   productType: 'Display frame',
   tags: ['overframe', 'psa', 'yugioh'],
   description: (c) => `<p>Extended-art display frame for a PSA-graded <strong>${c.name}</strong> (${c.code}). ` +
     `Black acrylic, direct UV print of the card's Overframe illustration, milled to the exact PSA holder size. ` +
-    `Empty display slab included – use it before your card is graded and swap in the PSA slab later. ` +
+    `Optional empty display slab (+8 €) – use it before your card is graded and swap in the PSA slab later. ` +
     `Slab slides in from the top, no glue, no tools.</p>`,
   // Product images (framed render from scripts/render-product-images.sh) must be reachable by
   // Shopify over HTTPS – default: this repo on GitHub, so push before syncing.
@@ -91,7 +92,7 @@ if (ONLY.length) {
     const input = buildInput(c);
     const existing = DRY ? null : await findByHandle(api, c.slug);
     const action = existing ? 'update' : 'create';
-    if (DRY) { log(`  ${c.slug.padEnd(18)} would create/update  ${input.variants.map(v => `${v.optionValues[0].name} ${v.price}`).join(' · ')}${c.soon ? '  (draft – ' + c.soon + ')' : ''}`); continue; }
+    if (DRY) { log(`  ${c.slug.padEnd(18)} would create/update  ${input.variants.map(v => `${v.optionValues.map(o => o.name).join(' / ')} ${v.price}`).join(' · ')}${c.soon ? '  (draft – ' + c.soon + ')' : ''}`); continue; }
 
     if (existing) { input.id = existing.id; delete input.files; }   // productSet would append images on update
     const product = await productSet(api, input);
@@ -176,8 +177,11 @@ async function publish(api, productId, publications){
 }
 
 /* ---------- Build the ProductSetInput for one design ---------- */
+function combinations(options){
+  return options.reduce((acc, o) => acc.flatMap(combo => o.values.map(v => [...combo, {optionName: o.name, name: v.name, surcharge: v.surcharge || 0}])), [[]]);
+}
 function buildInput(c){
-  const price = (CATALOG.overrides[c.slug] || {}).price;
+  const base = (CATALOG.overrides[c.slug] || {}).price ?? CATALOG.basePrice;
   return {
     title: c.name,
     handle: c.slug,
@@ -186,10 +190,10 @@ function buildInput(c){
     productType: CATALOG.productType,
     tags: [...CATALOG.tags, c.series.toLowerCase().replace(/[^a-z0-9]+/g, '-')],
     status: c.soon ? 'DRAFT' : 'ACTIVE',
-    productOptions: [{name: 'Mount', position: 1, values: CATALOG.mounts.map(m => ({name: m.name}))}],
-    variants: CATALOG.mounts.map(m => ({
-      optionValues: [{optionName: 'Mount', name: m.name}],
-      price: String((price ?? m.price).toFixed(2)),
+    productOptions: CATALOG.options.map((o, i) => ({name: o.name, position: i + 1, values: o.values.map(v => ({name: v.name}))})),
+    variants: combinations(CATALOG.options).map(combo => ({
+      optionValues: combo.map(({optionName, name}) => ({optionName, name})),
+      price: (base + combo.reduce((n, v) => n + v.surcharge, 0)).toFixed(2),
       inventoryPolicy: 'CONTINUE',            // made to order – never "sold out" by stock
       inventoryItem: {tracked: false},
     })),

@@ -39,8 +39,10 @@
   /* ---------- Products ---------- */
   // Normalized product: {id, handle, title, description, image, card, variants:[{id,title,price,currency,available}]}
   function demoProduct(c){
-    const v = (key, title) => ({id:`demo:${c.slug}:${key}`, title, price: DEMO_PRICE.frame, currency: SHOPIFY.currency, available: !c.soon});
-    return {id:`demo:${c.slug}`, handle:c.slug, title:c.name, description:'', image:null, card:c, variants:[v('stand','Stand'), v('wall','Wall mount')]};
+    const variants = [];
+    for (const mount of ['Stand', 'Wall mount']) for (const slab of ['Frame only', 'With display slab'])
+      variants.push({id:`demo:${c.slug}:${mount}:${slab}`, title:`${mount} / ${slab}`, price: DEMO_PRICE.frame + (slab === 'Frame only' ? 0 : DEMO_PRICE.slab), currency: SHOPIFY.currency, available: !c.soon});
+    return {id:`demo:${c.slug}`, handle:c.slug, title:c.name, description:'', image:null, card:c, variants};
   }
   // links mode: variants come from SHOPIFY.products[slug] = [{variantId, title, price}]
   function linksProduct(c){
@@ -198,17 +200,27 @@
     $('sheetVisual').style.setProperty('--glow', c ? c.glow : '#6d3fb0');
     $('sheetTitle').textContent = p.title;
     $('sheetMeta').textContent = c ? `${c.series} · ${c.code}` : '';
-    $('sheetDesc').textContent = p.description || `Extended-art frame for a PSA-graded ${p.title}. Empty display slab included, so you can use it before the card is graded. Black acrylic, direct UV print, slab slides in from the top.`;
+    $('sheetDesc').textContent = p.description || `Extended-art frame for a PSA-graded ${p.title}. Add an empty display slab to use it before the card is graded. Black acrylic, direct UV print, slab slides in from the top.`;
     renderVariants(); renderQty();
     history.replaceState({design: handle}, '', `?design=${encodeURIComponent(handle)}`);
     open(sheet);
   }
+  // Variant titles are "Value1 / Value2" (one value per option) → render one chip group per option
+  const parts = v => v.title.split(' / ');
   function renderVariants(){
-    const p = current;
-    $('sheetVariants').innerHTML = p.variants.map(v => `
-      <button class="chip variant" type="button" data-id="${esc(v.id)}" aria-pressed="${v === currentVariant}" ${v.available ? '' : 'disabled'}>
-        ${esc(v.title)}${v.available ? '' : ' · sold out'}
-      </button>`).join('');
+    const p = current, sel = currentVariant ? parts(currentVariant) : [];
+    const nOpts = p.variants.length ? parts(p.variants[0]).length : 0;
+    const names = (typeof OPTION_NAMES !== 'undefined' ? OPTION_NAMES : []);
+    $('sheetVariants').innerHTML = Array.from({length: nOpts}, (_, i) => {
+      const values = [...new Set(p.variants.map(v => parts(v)[i]))];
+      return `<div class="opt"><span class="opt-label">${esc(names[i] || 'Option ' + (i + 1))}</span><div class="opt-chips">` + values.map(val => {
+        // the variant this chip would select: current selection with option i swapped
+        const want = sel.map((s, j) => j === i ? val : s);
+        const target = p.variants.find(v => parts(v).every((x, j) => x === want[j])) || p.variants.find(v => parts(v)[i] === val);
+        const diff = target && currentVariant && i > 0 ? target.price - p.variants.find(v => parts(v)[0] === parts(target)[0] && parts(v)[i] === values[0]).price : 0;
+        return `<button class="chip variant" type="button" data-id="${esc(target ? target.id : '')}" aria-pressed="${sel[i] === val}" ${target && target.available ? '' : 'disabled'}>${esc(val)}${diff > 0 ? ` <span class="plus">+${money(diff, target.currency)}</span>` : ''}</button>`;
+      }).join('') + `</div></div>`;
+    }).join('');
     const c = p.card, can = !!currentVariant && currentVariant.available && !(c && c.soon);
     $('sheetPrice').textContent = currentVariant ? money(currentVariant.price * qty, currentVariant.currency) : '';
     $('addBtn').disabled = !can;

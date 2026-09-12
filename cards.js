@@ -72,4 +72,6 @@ function mountPiece(el, c, opts = {}){
 const bySlug = s => CARDS.find(c => c.slug === s);
 
 /* Placeholder pricing for demo mode (EUR). Real prices come from Shopify. */
-const DEMO_PRICE = {frame: 49, frameSlab: 59};
+const DEMO_PRICE = {frame: 49, slab: 8};
+/* Variant option names, in the order they appear in variant titles ("Stand / With display slab") */
+const OPTION_NAMES = ['Mount', 'Display slab'];
