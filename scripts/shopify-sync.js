@@ -24,6 +24,7 @@
    Needs Node 18+ (built-in fetch). No dependencies.
    ============================================================ */
 'use strict';
+let canPublish = false;
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
@@ -51,7 +52,7 @@ const CATALOG = {
 const args = process.argv.slice(2);
 const DRY = args.includes('--dry-run');
 const NO_PUBLISH = args.includes('--no-publish');
-const ONLY = (args[args.indexOf('--only') + 1] || '').split(',').filter(Boolean);
+const ONLY = args.includes('--only') ? (args[args.indexOf('--only') + 1] || '').split(',').filter(Boolean) : [];
 if (args.includes('--only') && !ONLY.length) die('--only needs a comma-separated list of slugs');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -76,7 +77,7 @@ if (ONLY.length) {
   const token = DRY ? null : await getToken();
   const api = token ? makeApi(token) : null;
 
-  const publications = (!DRY && !NO_PUBLISH) ? await listPublications(api) : [];
+  const publications = (!DRY && !NO_PUBLISH && canPublish) ? await listPublications(api) : [];
   if (publications.length) log(`Sales channels: ${publications.map(p => p.name).join(', ')}`);
 
   const result = {};      // slug → [{variantId, title, price, available}]
@@ -114,10 +115,10 @@ async function getToken(){
   });
   if (!res.ok) die(`Token request failed (${res.status}): ${await res.text()}\nIs the app installed on ${STORE} and does the store belong to the same organization as the app?`);
   const json = await res.json();
-  const need = ['write_products', 'read_products'];
   const have = (json.scope || '').split(',');
-  const miss = need.filter(s => !have.includes(s));
-  if (miss.length) die(`App is missing access scopes: ${miss.join(', ')} (has: ${json.scope}). Add them in the Dev Dashboard and release a new version.`);
+  if (!have.includes('write_products')) die(`App is missing the write_products scope (has: ${json.scope}). Add it in the Dev Dashboard and release a new version.`);
+  canPublish = have.includes('write_publications');
+  if (!canPublish) warn('no write_publications scope – products will not be published to sales channels (do it in the admin, or add the scope and re-run)');
   return json.access_token;
 }
 function makeApi(token){
