@@ -52,7 +52,7 @@ node scripts/shopify-sync.js             # create / update all products, write s
 node scripts/shopify-sync.js --only blue-eyes,ra
 ```
 
-For each design in `cards.js` the script creates (or updates, matched by handle) a product with the title, description, card image (loaded from this repo on GitHub, so push first), the **Mount** option (`Stand` / `Wall mount` – edit `CATALOG` at the top of the script to change variants or prices), publishes it to all your sales channels and writes the variant IDs into `shopify-config.js`. Unreleased designs (`soon:` in `cards.js`) are created as drafts. Commit and push the updated config and the shop is live.
+For each design in `cards.js` the script creates (or updates, matched by handle) a product with the title, description, product image (`img/products/`, rendered by `scripts/render-product-images.sh`, loaded from this repo on GitHub – so push first), the options **Mount** (`Stand` / `Wall mount`) and **Display slab** (`Frame only` / `With display slab`, +8 €) – edit `CATALOG` at the top of the script to change options, surcharges or the base price, publishes it to all your sales channels and writes the variant IDs into `shopify-config.js`. Unreleased designs (`soon:` in `cards.js`) are created as drafts. Commit and push the updated config and the shop is live. Changed the frame design? Re-render the product images and run the script with `--images` to swap them in Shopify.
 
 Prefer to do it by hand? Create the products in the admin, read each variant ID from its URL (`…/variants/48211234567890`) and fill the map yourself:
 
