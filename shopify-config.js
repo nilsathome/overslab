@@ -1,21 +1,36 @@
 /* ============================================================
-   Shopify connection (Storefront API, headless).
-   Leave `domain` or `storefrontToken` empty and the shop runs in
-   DEMO MODE: the 25 designs appear as placeholder products with
-   placeholder prices, and checkout is disabled.
+   Shopify connection. Pick ONE of the two modes below.
+   Leave everything empty and the shop runs in DEMO MODE
+   (placeholder products, checkout disabled).
 
-   How to connect (see README.md for the full walkthrough):
-   1. In Shopify admin install the "Headless" sales channel and
-      create a storefront → copy the PUBLIC access token.
-   2. Create one product per design. The product HANDLE must equal
-      the design slug in cards.js (e.g. "dark-magician") so the shop
-      can render the frame preview. Add variants for the mount
-      option (e.g. "Stand" / "Wall mount").
-   3. Fill in domain + token below and publish.
+   MODE A – Checkout links   (works on EVERY plan, incl. Starter/trial)
+     Set `domain` and fill `products` with your variant IDs + prices.
+     The cart lives in the browser; "Checkout" sends the customer to
+     https://<domain>/cart/<variantId>:<qty>,... and Shopify takes over.
+     Variant ID: Shopify admin → Products → product → click the variant;
+     the number at the end of the URL (…/variants/48211234567890).
+
+   MODE B – Storefront API    (Basic plan and up, or a Buy Button token)
+     Set `domain` and `storefrontToken`. Products, prices and the cart
+     then come live from Shopify; `products` below is ignored.
+     Product HANDLE must equal the design slug in cards.js.
    ============================================================ */
 const SHOPIFY = {
   domain: '',                 // e.g. 'overslab.myshopify.com'
-  storefrontToken: '',        // public Storefront API access token — safe to ship to the browser
-  apiVersion: '2026-04',      // Storefront API version, see shopify.dev/docs/api/usage/versioning
-  currency: 'EUR',            // demo mode only; live prices come from Shopify
+  currency: 'EUR',            // used for Mode A and demo mode
+
+  /* MODE A: one entry per design slug (see cards.js), one line per variant */
+  products: {
+    // 'dark-magician': [
+    //   {variantId: '48211234567890', title: 'Stand',      price: 49},
+    //   {variantId: '48211234567891', title: 'Wall mount', price: 49},
+    // ],
+    // 'blue-eyes': [
+    //   {variantId: '48211234567892', title: 'Stand',      price: 49, available: false}, // sold out
+    // ],
+  },
+
+  /* MODE B */
+  storefrontToken: '',        // public Storefront API access token (Headless channel or Buy Button embed code)
+  apiVersion: '2026-04',      // see shopify.dev/docs/api/usage/versioning
 };

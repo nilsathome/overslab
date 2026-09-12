@@ -28,50 +28,57 @@ python3 -m http.server 8765
 
 ## Connecting Shopify
 
-The shop is headless: this static site talks to the **Shopify Storefront API** directly from the browser and hands the customer to Shopify's hosted checkout. Until it is connected, the shop runs in **demo mode** (placeholder products/prices, checkout disabled, banner at the top).
+The site is static; Shopify only handles checkout, payment and orders. Until a store is configured the shop runs in **demo mode** (placeholder products/prices, checkout disabled, banner at the top). Everything is configured in **`shopify-config.js`** – pick one of two modes.
 
-### 1. Create the store and the Storefront token
+### Mode A – Checkout links (works on every plan, including Starter and trial)
 
-1. Create a Shopify store (any plan; Basic is enough).
-2. In the admin go to **Sales channels → add the "Headless" channel** (Shopify's official channel for custom storefronts).
-3. Inside Headless, **create a storefront** and copy the **public access token**. Public tokens are meant to be shipped to the browser – that is the one you need. (Never put a *private* token in this repo.)
-4. Make sure the storefront has at least these permissions: *unauthenticated_read_product_listings*, *unauthenticated_write_checkouts*, *unauthenticated_read_checkouts*. These are on by default.
+No API needed. The cart lives in the browser; **Checkout** sends the customer to a Shopify *cart permalink* (`https://your-store.myshopify.com/cart/VARIANT:QTY,VARIANT:QTY`) and Shopify's hosted checkout takes over with your payment providers, shipping and taxes.
 
-### 2. Create the products
-
-One product per design. The shop matches products to designs by **handle**:
-
-| Shopify field | Value |
-|---|---|
-| Title | e.g. `Blue-Eyes White Dragon, the White Phantom Beast` |
-| Handle (URL) | must equal the slug in `cards.js`, e.g. `blue-eyes` |
-| Option | `Mount` with values `Stand` and `Wall mount` (or whatever you offer) |
-| Price | per variant |
-| Description | optional – shown in the product sheet; a default text is used when empty |
-| Image | optional – the site renders the frame preview itself from `img/cards/` |
-
-Products whose handle has no matching design still appear (with their Shopify image), so you can sell accessories too.
-
-Publish every product to the **Headless** sales channel, otherwise the Storefront API will not return it.
-
-### 3. Fill in `shopify-config.js`
+1. Create the store. Any plan works – this is exactly what the Starter plan is built for.
+2. Create one product per design (title, price, an option **Mount** with values `Stand` / `Wall mount`, or whatever you offer). Products must be *active* and available on the **Online Store** channel (the permalink goes through it).
+3. Collect the **variant IDs**: open the product in the admin, click a variant – the number at the end of the URL (`…/products/123456/variants/48211234567890`) is the ID.
+4. Fill in `shopify-config.js`:
 
 ```js
 const SHOPIFY = {
   domain: 'your-store.myshopify.com',
-  storefrontToken: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-  apiVersion: '2026-04',
   currency: 'EUR',
+  products: {
+    'dark-magician': [
+      {variantId: '48211234567890', title: 'Stand',      price: 49},
+      {variantId: '48211234567891', title: 'Wall mount', price: 49},
+    ],
+    'blue-eyes': [ /* … */ ],
+  },
+  storefrontToken: '',
 };
 ```
 
-Commit, push, done. The demo banner disappears, products and prices come from Shopify, the cart is a real Shopify cart (persisted in `localStorage`) and **Checkout** opens Shopify's checkout with your payment providers, shipping rates and taxes.
+Designs without an entry show as "Not in the shop yet". Prices in the config are only for display – Shopify always charges its own price, so keep them in sync.
+
+### Mode B – Storefront API (Basic plan and up)
+
+Products, prices, stock and the cart come live from Shopify; nothing to keep in sync.
+
+1. **Token.** In the admin add the **Headless** sales channel, create a storefront and copy the **public** access token. On plans without Headless you can also install the free **Buy Button** channel, generate any button, and copy `domain` and `storefrontAccessToken` out of the embed code – it is the same kind of public token. Never put a *private* token in this repo.
+2. **Products.** One per design; the product **handle** must equal the slug in `cards.js` (e.g. `blue-eyes`). Add the mount option as variants. Publish each product to the channel the token belongs to (Headless or Buy Button).
+3. Set `domain` and `storefrontToken` in `shopify-config.js`; the `products` map is then ignored.
+
+### Which one?
+
+| | Checkout links | Storefront API |
+|---|---|---|
+| Plan | any | Basic+ (or Buy Button token) |
+| Prices / stock | maintained in config | live from Shopify |
+| Cart | browser | Shopify cart, survives devices |
+| Effort to go live | 10 min | 20 min |
+
+Start with links; switching to the API later is a config change only.
 
 ### Going further
 
-- **Custom domain for checkout:** set your domain in Shopify so the checkout URL shows `shop.yourdomain.com` instead of `*.myshopify.com`.
+- **Custom domain:** set it in Shopify so checkout shows your domain instead of `*.myshopify.com`.
 - **Analytics / pixels:** add them in Shopify's checkout settings; for the site itself add the snippet to both HTML files.
-- **Inventory:** sold-out variants are disabled automatically (`availableForSale`).
 
 ## Legal
 

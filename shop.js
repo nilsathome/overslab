@@ -3,7 +3,14 @@
    Requires cards.js and shopify-config.js to be loaded first.
    ============================================================ */
 (function(){
-  const DEMO = !SHOPIFY.domain || !SHOPIFY.storefrontToken;
+  /* Modes:
+     storefront – domain + storefrontToken set: products & cart via Storefront API (Basic plan and up, or a Buy Button token)
+     links      – domain + products map set:   products from config, local cart, checkout via Shopify cart permalink (works on every plan)
+     demo       – nothing configured:          placeholder products, checkout disabled */
+  const MODE = SHOPIFY.domain && SHOPIFY.storefrontToken ? 'storefront'
+             : SHOPIFY.domain && SHOPIFY.products && Object.keys(SHOPIFY.products).length ? 'links'
+             : 'demo';
+  const DEMO = MODE === 'demo', LOCAL = MODE !== 'storefront';
   const $ = id => document.getElementById(id);
   const money = (amount, currency) => new Intl.NumberFormat('en', {style:'currency', currency}).format(amount);
 
@@ -35,8 +42,15 @@
     const v = (key, title) => ({id:`demo:${c.slug}:${key}`, title, price: DEMO_PRICE.frame, currency: SHOPIFY.currency, available: !c.soon});
     return {id:`demo:${c.slug}`, handle:c.slug, title:c.name, description:'', image:null, card:c, variants:[v('stand','Stand'), v('wall','Wall mount')]};
   }
+  // links mode: variants come from SHOPIFY.products[slug] = [{variantId, title, price}]
+  function linksProduct(c){
+    const conf = SHOPIFY.products[c.slug] || [];
+    return {id:`links:${c.slug}`, handle:c.slug, title:c.name, description:'', image:null, card:c,
+      variants: conf.map(v => ({id: String(v.variantId), title: v.title, price: +v.price, currency: SHOPIFY.currency, available: !c.soon && v.available !== false}))};
+  }
   async function loadProducts(){
     if (DEMO) return CARDS.map(demoProduct);
+    if (MODE === 'links') return CARDS.map(linksProduct);
     const data = await gql(`{
       products(first: 100, sortKey: TITLE) { edges { node {
         id handle title description featuredImage { url }
@@ -52,7 +66,7 @@
 
   /* ---------- Cart ---------- */
   // Normalized cart: {id, checkoutUrl, count, subtotal, currency, lines:[{id, qty, variantId, title, variantTitle, price, currency, handle}]}
-  const CART_KEY = 'overslab.cart.' + (DEMO ? 'demo' : SHOPIFY.domain);
+  const CART_KEY = 'overslab.cart.' + MODE + '.' + (SHOPIFY.domain || 'demo');
   const emptyCart = () => ({id:null, checkoutUrl:null, count:0, subtotal:0, currency:SHOPIFY.currency, lines:[]});
   let cart = emptyCart();
 
@@ -71,7 +85,7 @@
   }
   async function cartLoad(){
     try {
-      if (DEMO) { const saved = localStorage.getItem(CART_KEY); if (saved) cart = JSON.parse(saved); return; }
+      if (LOCAL) { const saved = localStorage.getItem(CART_KEY); if (saved) cart = JSON.parse(saved); return; }
       const id = localStorage.getItem(CART_KEY);
       if (!id) return;
       const data = await gql(`query($id: ID!) { cart(id: $id) { ${CART_FIELDS} } }`, {id});
@@ -79,7 +93,7 @@
     } catch(e){ console.warn('cart load failed', e); }
   }
   async function cartAdd(product, variant, qty){
-    if (DEMO) {
+    if (LOCAL) {
       const line = cart.lines.find(l => l.variantId === variant.id);
       if (line) line.qty += qty;
       else cart.lines.push({id: variant.id, qty, variantId: variant.id, title: product.title, handle: product.handle, variantTitle: variant.title, price: variant.price, currency: variant.currency});
@@ -99,7 +113,7 @@
     localStorage.setItem(CART_KEY, cart.id);
   }
   async function cartSetQty(lineId, qty){
-    if (DEMO) {
+    if (LOCAL) {
       cart.lines = qty > 0 ? cart.lines.map(l => l.id === lineId ? {...l, qty} : l) : cart.lines.filter(l => l.id !== lineId);
       recalcDemo(); return;
     }
@@ -119,13 +133,14 @@
     return `<div class="${cls} placeholder" aria-hidden="true"></div>`;
   }
   function priceLabel(p){
+    if (!p.variants.length) return 'Coming soon';
     const prices = p.variants.map(v => v.price);
     const min = Math.min(...prices), max = Math.max(...prices), cur = p.variants[0]?.currency || SHOPIFY.currency;
     return min === max ? money(min, cur) : `from ${money(min, cur)}`;
   }
   function renderGrid(){
     grid.innerHTML = products.map(p => {
-      const c = p.card, soldOut = !p.variants.some(v => v.available);
+      const c = p.card, soldOut = p.variants.length && !p.variants.some(v => v.available);
       return `
       <button class="tile product" type="button" data-handle="${esc(p.handle)}" data-series="${esc(c ? c.series : 'Other')}" style="--glow:${c ? c.glow : '#6d3fb0'}" aria-label="${esc(p.title)}, ${esc(priceLabel(p))}">
         <div class="tglow"></div>
@@ -177,7 +192,7 @@
   let current = null, currentVariant = null, qty = 1;
   function openProduct(handle){
     const p = products.find(x => x.handle === handle); if (!p) return;
-    current = p; currentVariant = p.variants.find(v => v.available) || p.variants[0]; qty = 1;
+    current = p; currentVariant = p.variants.find(v => v.available) || p.variants[0] || null; qty = 1;
     const c = p.card;
     $('sheetVisual').innerHTML = previewHTML(p, 'piece big');
     $('sheetVisual').style.setProperty('--glow', c ? c.glow : '#6d3fb0');
@@ -194,12 +209,12 @@
       <button class="chip variant" type="button" data-id="${esc(v.id)}" aria-pressed="${v === currentVariant}" ${v.available ? '' : 'disabled'}>
         ${esc(v.title)}${v.available ? '' : ' · sold out'}
       </button>`).join('');
-    $('sheetPrice').textContent = money(currentVariant.price * qty, currentVariant.currency);
-    const c = p.card, can = currentVariant.available && !(c && c.soon);
+    const c = p.card, can = !!currentVariant && currentVariant.available && !(c && c.soon);
+    $('sheetPrice').textContent = currentVariant ? money(currentVariant.price * qty, currentVariant.currency) : '';
     $('addBtn').disabled = !can;
-    $('addBtn').textContent = c && c.soon ? `Available ${c.soon}` : can ? 'Add to cart' : 'Sold out';
+    $('addBtn').textContent = c && c.soon ? `Available ${c.soon}` : !currentVariant ? 'Not in the shop yet' : can ? 'Add to cart' : 'Sold out';
   }
-  function renderQty(){ $('qtyVal').textContent = qty; $('sheetPrice').textContent = money(currentVariant.price * qty, currentVariant.currency); }
+  function renderQty(){ $('qtyVal').textContent = qty; if (currentVariant) $('sheetPrice').textContent = money(currentVariant.price * qty, currentVariant.currency); }
   $('sheetVariants').addEventListener('click', e => {
     const b = e.target.closest('.variant'); if (!b) return;
     currentVariant = current.variants.find(v => v.id === b.dataset.id); renderVariants();
@@ -254,6 +269,12 @@
   });
   $('checkoutBtn').addEventListener('click', () => {
     if (DEMO) { toast('Demo mode – connect your Shopify store in shopify-config.js to enable checkout.'); return; }
+    if (MODE === 'links') {
+      // Shopify cart permalink: /cart/<variantId>:<qty>,<variantId>:<qty> → straight into checkout
+      const items = cart.lines.map(l => `${l.variantId}:${l.qty}`).join(',');
+      location.href = `https://${SHOPIFY.domain}/cart/${items}`;
+      return;
+    }
     location.href = cart.checkoutUrl;
   });
 
