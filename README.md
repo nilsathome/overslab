@@ -27,6 +27,21 @@ python3 -m http.server 8765
 2. Add one line to the `CARDS` array in `cards.js` (slug, name, series, set, code, rarity, glow colour; `soon: 'Oct 2026'` for unreleased cards).
 3. Run `node scripts/shopify-sync.js` – it creates the Shopify product and updates `shopify-config.js` (see below).
 
+## Extended artwork (AI outpainting)
+
+By default the frame shows a zoomed crop of the card scan. `scripts/extend-art.js` replaces that with genuinely extended artwork: it sends each scan to Stability AI's outpaint endpoint with exactly the margins the frame needs (card = 78.5 % × 71 % of the art area, offset 10.75 % / 24.2 %), so the illustration continues seamlessly out of the card window.
+
+```bash
+# .env: STABILITY_API_KEY=sk-…   (platform.stability.ai, ≈ $0.04 per image)
+node scripts/extend-art.js --dry-run            # geometry only
+node scripts/extend-art.js --only blue-eyes     # try one, look at img/art/blue-eyes.jpg
+node scripts/extend-art.js                      # all designs without artwork yet
+node scripts/extend-art.js --force --only ra    # re-roll one you don't like
+node scripts/extend-art.js --creativity 0.3     # 0–1, lower stays closer to the original
+```
+
+Results land in `img/art/<slug>.jpg` plus `img/art/manifest.js`; the site, the shop and the product-image renderer pick them up automatically (designs without one keep the zoom fallback). Generation is random – expect to re-roll a few. Afterwards: `scripts/render-product-images.sh` and `node scripts/shopify-sync.js --images` to refresh the Shopify photos.
+
 ## Connecting Shopify
 
 The site is static; Shopify only handles checkout, payment and orders. Until a store is configured the shop runs in **demo mode** (placeholder products/prices, checkout disabled, banner at the top). Everything is configured in **`shopify-config.js`** – pick one of two modes.

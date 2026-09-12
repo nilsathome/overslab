@@ -130,7 +130,7 @@
   let products = [];
   const grid = $('products');
   function previewHTML(p, cls = 'piece'){
-    if (p.card) return `<div class="${cls}" aria-hidden="true" style="--art:url('img/cards/${p.card.slug}.jpg');--glow:${p.card.glow}">${pieceHTML(p.card)}</div>`;
+    if (p.card) return `<div class="${cls}" aria-hidden="true" style="${artVars(p.card)};--glow:${p.card.glow}">${pieceHTML(p.card)}</div>`;
     if (p.image) return `<img class="product-img" src="${esc(p.image)}" alt="">`;
     return `<div class="${cls} placeholder" aria-hidden="true"></div>`;
   }
@@ -255,7 +255,7 @@
         const c = bySlug(l.handle);
         return `
         <div class="line" data-id="${esc(l.id)}">
-          <div class="line-visual">${c ? `<div class="piece" aria-hidden="true" style="--art:url('img/cards/${c.slug}.jpg')">${pieceHTML(c)}</div>` : ''}</div>
+          <div class="line-visual">${c ? `<div class="piece" aria-hidden="true" style="${artVars(c)}">${pieceHTML(c)}</div>` : ''}</div>
           <div class="line-body">
             <div class="line-title">${esc(l.title)}</div>
             <div class="line-sub">${esc(l.variantTitle)}</div>

@@ -225,6 +225,7 @@
   </div>
 </footer>
 
+<script src="img/art/manifest.js"></script>
 <script src="cards.js"></script>
 <script>
 (function(){
@@ -246,7 +247,7 @@
     <a class="tile" href="shop.html?design=${esc(c.slug)}" data-series="${esc(c.series)}" style="--glow:${c.glow}" aria-label="${esc(c.name)} – open in shop">
       <div class="tglow"></div>
       ${c.soon ? `<span class="soon">${esc(c.soon)}</span>` : ''}
-      <div class="piece" aria-hidden="true" style="--art:url('img/cards/${c.slug}.jpg')">${pieceHTML(c)}</div>
+      <div class="piece" aria-hidden="true" style="${artVars(c)}">${pieceHTML(c)}</div>
       <div class="tile-meta"><h3>${esc(c.name)}</h3></div>
       <div class="tile-sub"><span>${esc(c.series)}</span><span class="code">${esc(c.code)}</span></div>
       <div class="glare"></div>

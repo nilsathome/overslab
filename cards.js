@@ -64,8 +64,13 @@ function pieceHTML(c, opts = {}){
       ${empty ? '<div class="card empty">your card<br>goes here</div>' : '<div class="card"></div>'}
     </div>`;
 }
+// Extended artwork (img/art/<slug>.jpg, made by scripts/extend-art.js) continues the illustration
+// beyond the card; the frame layer uses it when present, otherwise a zoomed crop of the scan.
+const hasExtArt = c => typeof EXT_ART !== 'undefined' && EXT_ART.includes(c.slug);
+const artVars = c => `--art:url('img/cards/${c.slug}.jpg')` + (hasExtArt(c) ? `;--art-ext:url('img/art/${c.slug}.jpg')` : '');
 function mountPiece(el, c, opts = {}){
   el.style.setProperty('--art', `url('img/cards/${c.slug}.jpg')`);
+  if (hasExtArt(c)) el.style.setProperty('--art-ext', `url('img/art/${c.slug}.jpg')`);
   el.style.setProperty('--glow', c.glow);
   el.innerHTML = pieceHTML(c, opts);
 }

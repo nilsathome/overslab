@@ -139,9 +139,11 @@ section{padding:clamp(88px,12vw,160px) 0;position:relative}
 }
 .frame-layer .art{
   position:absolute;inset:3.5%;border-radius:8px;overflow:hidden;
-  /* zoomed onto the illustration area so the card's text box never repeats outside the window */
+  /* fallback: zoomed onto the illustration area so the card's text box never repeats outside the window */
   background:var(--art) center 16%/165% auto no-repeat;
 }
+/* extended artwork: the card sits at exactly the window position inside the image → fill the art area 1:1 */
+.piece[style*="--art-ext"] .frame-layer .art{background:var(--art-ext) center/100% 100% no-repeat}
 .frame-layer .art::after{
   content:"";position:absolute;inset:0;
   background:radial-gradient(ellipse at 50% 55%,transparent 45%,rgba(0,0,0,.34) 100%);
