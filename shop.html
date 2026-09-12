@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OVERSLAB Shop</title>
+<meta name="description" content="Order an extended-art frame for your PSA-graded Yu-Gi-Oh! Overframe card.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body class="shop-page">
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="logo" href="index.html">OVER<span>SLAB</span></a>
+    <ul>
+      <li><a href="index.html#how">How it works</a></li>
+      <li><a href="index.html#raw">Not graded yet?</a></li>
+      <li><a href="index.html#specs">Details</a></li>
+      <li><a href="shop.html" aria-current="page">Shop</a></li>
+    </ul>
+    <button class="btn small cart-btn" type="button" data-open-cart aria-label="Open cart">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 7h13l-1.2 8H7.8L6 3H3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="20" r="1.2"/><circle cx="17" cy="20" r="1.2"/></svg>
+      Cart <span class="badge" data-cart-count hidden>0</span>
+    </button>
+  </div>
+</header>
+
+<main>
+  <div class="demo-banner" id="demoBanner" hidden>
+    <span class="dot"></span>
+    Demo shop – not connected to Shopify yet. Products and prices are placeholders; checkout is disabled.
+  </div>
+
+  <section class="shop-head-section">
+    <div class="wrap">
+      <div class="shop-head">
+        <div>
+          <span class="eyebrow">Shop</span>
+          <h1>Pick your design.</h1>
+          <p class="lead">One frame per Overframe card, made with its extended artwork. Every frame ships with an empty display slab, so you can order before your card is graded.</p>
+        </div>
+        <dl class="shop-facts">
+          <div><dt>Fits</dt><dd>PSA standard holder</dd></div>
+          <div><dt>Included</dt><dd>Display slab</dd></div>
+          <div><dt>Ships</dt><dd>EU · worldwide</dd></div>
+        </dl>
+      </div>
+      <div class="filters" id="filters" role="group" aria-label="Filter by series"></div>
+      <div class="tiles" id="products" aria-live="polite"></div>
+    </div>
+  </section>
+</main>
+
+<!-- Product sheet -->
+<aside class="drawer sheet" id="sheet" aria-hidden="true" role="dialog" aria-labelledby="sheetTitle">
+  <button class="drawer-close" type="button" data-close aria-label="Close">×</button>
+  <div class="sheet-visual" id="sheetVisual"></div>
+  <div class="sheet-body">
+    <h2 id="sheetTitle"></h2>
+    <p class="sheet-meta" id="sheetMeta"></p>
+    <p class="sheet-desc" id="sheetDesc"></p>
+    <div class="opt">
+      <span class="opt-label">Mount</span>
+      <div class="opt-chips" id="sheetVariants"></div>
+    </div>
+    <div class="opt">
+      <span class="opt-label">Quantity</span>
+      <div class="qty"><button type="button" id="qtyMinus" aria-label="Decrease quantity">−</button><span id="qtyVal">1</span><button type="button" id="qtyPlus" aria-label="Increase quantity">+</button></div>
+    </div>
+    <div class="sheet-buy">
+      <div class="sheet-price" id="sheetPrice"></div>
+      <button class="btn primary" type="button" id="addBtn">Add to cart</button>
+    </div>
+    <ul class="sheet-notes">
+      <li>Empty display slab included</li>
+      <li>Slab slides in from the top – no glue, no tools</li>
+      <li>Made to order · ships in 5–7 business days</li>
+    </ul>
+  </div>
+</aside>
+
+<!-- Cart drawer -->
+<aside class="drawer cart-drawer" id="cart" aria-hidden="true" role="dialog" aria-label="Cart">
+  <div class="drawer-head">
+    <h2>Cart</h2>
+    <button class="drawer-close" type="button" data-close aria-label="Close">×</button>
+  </div>
+  <div class="cart-lines" id="cartLines"></div>
+  <div class="cart-foot">
+    <div class="cart-total"><span>Subtotal</span><strong id="cartSubtotal">€0.00</strong></div>
+    <p class="cart-hint">Shipping and taxes are calculated at checkout.</p>
+    <button class="btn primary" type="button" id="checkoutBtn" disabled>Checkout <span class="arr">→</span></button>
+  </div>
+</aside>
+
+<div class="backdrop" id="backdrop"></div>
+<div class="toast-bar" id="toast" role="status" aria-live="polite"></div>
+
+<footer>
+  <div class="wrap">
+    <div class="logo">OVER<span>SLAB</span></div>
+    <p class="legal">OVERSLAB is an independent product and is not affiliated with Konami or PSA. Yu-Gi-Oh! and the artwork shown are the property of their respective owners. Mockup – all details preliminary.</p>
+  </div>
+</footer>
+
+<script src="cards.js"></script>
+<script src="shopify-config.js"></script>
+<script src="shop.js"></script>
+</body>
+</html>
